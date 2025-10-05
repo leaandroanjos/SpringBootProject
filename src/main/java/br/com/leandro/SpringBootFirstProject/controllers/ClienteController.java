@@ -1,63 +1,44 @@
 package br.com.leandro.SpringBootFirstProject.controllers;
 
-import br.com.leandro.SpringBootFirstProject.domain.Cliente;
+import br.com.leandro.SpringBootFirstProject.model.Cliente;
+import br.com.leandro.SpringBootFirstProject.service.ClienteService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
 @RequestMapping("/clientes")
 public class ClienteController {
+    @Autowired
+    private ClienteService service;
 
-    // Lista temporária só pra simular um "banco em memória"
-    private List<Cliente> clientes = new ArrayList<>();
-
-    // CREATE
-    @PostMapping
-    public ResponseEntity<String> criarCliente(@RequestBody Cliente cliente) {
-        clientes.add(cliente);
-        return ResponseEntity.ok("Cliente adicionado com sucesso: " + cliente.getNome());
-    }
-
-    // READ - todos
     @GetMapping
-    public ResponseEntity<List<Cliente>> listarClientes() {
-        return ResponseEntity.ok(clientes);
+    public List<Cliente> listar() { return service.listar(); }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Cliente> buscar(@PathVariable Long id) {
+        Cliente c = service.buscar(id);
+        return (c != null) ? ResponseEntity.ok(c) : ResponseEntity.notFound().build();
     }
 
-    // READ - individual (por nome, só pra exemplo)
-    @GetMapping("/{nome}")
-    public ResponseEntity<Cliente> buscarPorNome(@PathVariable String nome) {
-        return clientes.stream()
-                .filter(c -> c.getNome().equalsIgnoreCase(nome))
-                .findFirst()
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @PostMapping
+    public Cliente salvar(@RequestBody Cliente cliente) {
+        return service.salvar(cliente);
     }
 
-    // UPDATE
-    @PutMapping("/{nome}")
-    public ResponseEntity<String> atualizarCliente(@PathVariable String nome, @RequestBody Cliente novoCliente) {
-        for (Cliente c : clientes) {
-            if (c.getNome().equalsIgnoreCase(nome)) {
-                c.setNome(novoCliente.getNome());
-                c.setIdade(novoCliente.getIdade());
-                return ResponseEntity.ok("Cliente atualizado: " + c.getNome());
-            }
-        }
-        return ResponseEntity.notFound().build();
+    @PutMapping("/{id}")
+    public ResponseEntity<Cliente> atualizar(@PathVariable Long id, @RequestBody Cliente cliente) {
+        Cliente existente = service.buscar(id);
+        if (existente == null) return ResponseEntity.notFound().build();
+        cliente.setId(id);
+        return ResponseEntity.ok(service.salvar(cliente));
     }
 
-    // DELETE
-    @DeleteMapping("/{nome}")
-    public ResponseEntity<String> deletarCliente(@PathVariable String nome) {
-        boolean removido = clientes.removeIf(c -> c.getNome().equalsIgnoreCase(nome));
-        if (removido) {
-            return ResponseEntity.ok("Cliente removido com sucesso: " + nome);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletar(@PathVariable Long id) {
+        service.deletar(id);
+        return ResponseEntity.noContent().build();
     }
 }
